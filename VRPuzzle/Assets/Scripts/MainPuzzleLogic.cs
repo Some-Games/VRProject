@@ -55,6 +55,28 @@ public class MainPuzzleLogic : MonoBehaviour
             PuzzleBlockArray.Add(PuzzleBlockType.Open);
 
         SpawnNewBlock();
+
+        // TEST
+        StartCoroutine(MoveBlocksTest());
+        
+    }
+
+    IEnumerator MoveBlocksTest()
+    {
+        int i = 0;
+
+        while( i < 20 )
+        {
+            yield return new WaitForSeconds(2.0f);
+            print("---");
+            MoveActiveBlocks_Down();
+
+            yield return new WaitForSeconds(2.0f);
+            print("---");
+            MoveActiveBlocks_Left();
+
+            i++;
+        }
     }
 
     public void SetPuzzleBlockInformation( PuzzleBlockSize blockSize_ )
@@ -125,23 +147,102 @@ public class MainPuzzleLogic : MonoBehaviour
     {
         for( int i = 0; i < BoardHeight; ++i )
         {
-            SetBlockAtBoardPosition(0, i, PuzzleBlockType.Open);
-            SetBlockAtBoardPosition(BoardWidth + 1, i, PuzzleBlockType.Open);
+            SetBlockAtBoardPosition( 0, i, PuzzleBlockType.Open );
+            SetBlockAtBoardPosition( BoardWidth + 1, i, PuzzleBlockType.Open );
         }
     }
 
     #region Move Blocks
     void MoveActiveBlocks_Down()
     {
-        // Find Bottom
+        // Find Bottom blocks, test for new positioning below
+        // print( BottomLeftCornerPosition.x + ", " + BottomLeftCornerPosition.y );
+        // print( GetBlockAtBoardPosition( BottomLeftCornerPosition.x, BottomLeftCornerPosition.y ) );
+
+        // Ensure all blocks are one row above the baseline first
+        if (BottomLeftCornerPosition.y >= 1)
+        {
+            // Cross through the bottom active blocks and ensure there's nothing below them
+            int blockWidth = 2;
+            if (BlockSize == PuzzleBlockSize.ThreeWide) blockWidth = 3;
+
+            // Confirm all blocks in lower position are empty, otherwise exit out
+            for(int i = 0; i < blockWidth; ++i)
+            {
+                if ( GetBlockAtBoardPosition( BottomLeftCornerPosition.x + i, BottomLeftCornerPosition.y - 1 ) != PuzzleBlockType.Open )
+                    return; // TODO: Replace with 'Drop/Lock Blocks' later
+            }
+
+            // Begin navigating blocks to their new position
+            int blockHeight = 2;
+            if ( BlockSize == PuzzleBlockSize.ThreeTall ) blockHeight = 3;
+
+            for( int y_ = 0; y_ < blockHeight; ++y_ )
+            {
+                for (int x_ = 0; x_ < blockWidth; ++x_)
+                {
+                    PuzzleBlockType tempBlock = GetBlockAtBoardPosition(BottomLeftCornerPosition.x + x_, BottomLeftCornerPosition.y + y_ );
+                    SetBlockAtBoardPosition( BottomLeftCornerPosition.x + x_, BottomLeftCornerPosition.y + y_ - 1, tempBlock );
+
+                    // Replace old position with Empty
+                    SetBlockAtBoardPosition(BottomLeftCornerPosition.x + x_, BottomLeftCornerPosition.y + y_, PuzzleBlockType.Open );
+                }
+            }
+
+            // TODO: Remove when close to shipping
+            PrintBoardToConsole();
+
+            // Realign Y position with new position
+            BottomLeftCornerPosition.y -= 1;
+        }
     }
 
     void MoveActiveBlocks_Left()
     {
-        // Find Bottom
+        // Ensure all blocks are one position from the left edge
+        if (BottomLeftCornerPosition.x >= 1)
+        {
+            // Cross through the bottom active blocks and ensure there's nothing below them
+            int blockHeight = 2;
+            if (BlockSize == PuzzleBlockSize.ThreeTall) blockHeight = 3;
+
+            // Confirm all blocks in left position are empty, otherwise exit out
+            for (int i = 0; i < blockHeight; ++i)
+            {
+                if (GetBlockAtBoardPosition(BottomLeftCornerPosition.x - 1, BottomLeftCornerPosition.y + i) != PuzzleBlockType.Open)
+                    return; // TODO: Replace with 'Drop/Lock Blocks' later
+            }
+
+            // Begin navigating blocks to their new position
+            int blockWidth = 2;
+            if (BlockSize == PuzzleBlockSize.ThreeWide) blockWidth = 3;
+
+            for (int y_ = 0; y_ < blockHeight; ++y_)
+            {
+                for (int x_ = 0; x_ < blockWidth; ++x_)
+                {
+                    PuzzleBlockType tempBlock = GetBlockAtBoardPosition(BottomLeftCornerPosition.x + x_, BottomLeftCornerPosition.y + y_);
+                    SetBlockAtBoardPosition(BottomLeftCornerPosition.x + x_ - 1, BottomLeftCornerPosition.y + y_, tempBlock);
+
+                    // Replace old position with Empty
+                    SetBlockAtBoardPosition(BottomLeftCornerPosition.x + x_, BottomLeftCornerPosition.y + y_, PuzzleBlockType.Open);
+                }
+            }
+
+            // TODO: Remove when close to shipping
+            PrintBoardToConsole();
+
+            // Realign Y position with new position
+            BottomLeftCornerPosition.x -= 1;
+        }
     }
 
     void MoveActiveBlocks_Right()
+    {
+        // Find Bottom
+    }
+
+    void DropBlocks()
     {
         // Find Bottom
     }
