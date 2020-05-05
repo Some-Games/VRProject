@@ -51,6 +51,12 @@ public class MainPuzzleLogic : MonoBehaviour
             PrintBoardToConsole();
             print("--------------------------------------");
         }
+        else if( Input.GetKeyDown(KeyCode.D))
+        {
+            RotateActiveBlocks_Clockwise();
+            PrintBoardToConsole();
+            print("--------------------------------------");
+        }
     }
 
     void Init_PuzzleBlockArray()
@@ -321,7 +327,39 @@ public class MainPuzzleLogic : MonoBehaviour
 
     void RotateActiveBlocks_Clockwise()
     {
+        // Temp X & Y
+        int tempX = BottomLeftCornerPosition.x;
+        int tempY = BottomLeftCornerPosition.y;
 
+        // Store block in bottom left
+        PuzzleBlockType spareBlock = GetBlockAtBoardPosition(tempX, tempY);
+
+        // Shift left (0,0) <- (1,0)
+        SetBlockAtBoardPosition(tempX, tempY, GetBlockAtBoardPosition(++tempX, tempY));
+
+        // If three wide, shift left
+        if(BlockSize == PuzzleBlockSize.ThreeWide)
+            SetBlockAtBoardPosition(tempX, tempY, GetBlockAtBoardPosition(++tempX, tempY));
+
+        // Shift down (1, 0) <- (1, 1)
+        SetBlockAtBoardPosition(tempX, tempY, GetBlockAtBoardPosition(tempX, ++tempY));
+
+        // If three tall, Shift down
+        if (BlockSize == PuzzleBlockSize.ThreeTall)
+            SetBlockAtBoardPosition(tempX, tempY, GetBlockAtBoardPosition(tempX, ++tempY));
+
+        // Shift Right
+        SetBlockAtBoardPosition(tempX, tempY, GetBlockAtBoardPosition(--tempX, tempY));
+
+        // If three wide, shift right
+        if(BlockSize == PuzzleBlockSize.ThreeWide)
+            SetBlockAtBoardPosition(tempX, tempY, GetBlockAtBoardPosition(--tempX, tempY));
+        // If three tall, shift up
+        else if (BlockSize == PuzzleBlockSize.ThreeTall)
+            SetBlockAtBoardPosition(tempX, tempY, GetBlockAtBoardPosition(tempX, --tempY));
+
+        // Store temp block in final position
+        SetBlockAtBoardPosition(tempX, tempY, spareBlock);
     }
 
     void DropBlocks()
