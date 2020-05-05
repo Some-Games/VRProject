@@ -30,7 +30,7 @@ public class MainPuzzleLogic : MonoBehaviour
 
     #region Current Block Information
     Vector2Int BottomLeftCornerPosition;
-    PuzzleBlockSize BlockSize;
+    [SerializeField] PuzzleBlockSize BlockSize;
     #endregion
 
     // Start is called before the first frame update
@@ -45,6 +45,12 @@ public class MainPuzzleLogic : MonoBehaviour
     void Update()
     {
         // UPDATE_TEST();
+        if (Input.GetKeyDown(KeyCode.A))
+        {
+            RotateActiveBlocks_CounterClockwise();
+            PrintBoardToConsole();
+            print("--------------------------------------");
+        }
     }
 
     void Init_PuzzleBlockArray()
@@ -57,7 +63,7 @@ public class MainPuzzleLogic : MonoBehaviour
         SpawnNewBlock();
 
         // TEST
-        StartCoroutine(MoveBlocksTest());
+        // StartCoroutine(MoveBlocksTest());
     }
 
     IEnumerator MoveBlocksTest()
@@ -274,6 +280,48 @@ public class MainPuzzleLogic : MonoBehaviour
             // Realign Y position with new position
             BottomLeftCornerPosition.x += 1;
         }
+    }
+
+    void RotateActiveBlocks_CounterClockwise()
+    {
+        // Temp X & Y
+        int tempX = BottomLeftCornerPosition.x;
+        int tempY = BottomLeftCornerPosition.y;
+
+        // Store block in bottom left
+        PuzzleBlockType spareBlock = GetBlockAtBoardPosition(tempX, tempY);
+
+        // (0,0) <- (0,1)
+        SetBlockAtBoardPosition(tempX, tempY, GetBlockAtBoardPosition(tempX, ++tempY));
+
+        // If three tall, (0,1) <- (0,2)
+        if(BlockSize == PuzzleBlockSize.ThreeTall)
+            SetBlockAtBoardPosition(tempX, tempY, GetBlockAtBoardPosition(tempX, ++tempY));
+
+        // Shift left (0, 1/2) <- (1, 1/2)
+        SetBlockAtBoardPosition(tempX, tempY, GetBlockAtBoardPosition(++tempX, tempY));
+
+        // If three wide, (1, 1) <- (2, 1)
+        if(BlockSize == PuzzleBlockSize.ThreeWide)
+            SetBlockAtBoardPosition(tempX, tempY, GetBlockAtBoardPosition(++tempX, tempY));
+
+        // Shift Up (1/2, 0) <- (1/2, 1)
+        SetBlockAtBoardPosition(tempX, tempY, GetBlockAtBoardPosition(tempX, --tempY));
+
+        // If three tall, shift up
+        if(BlockSize == PuzzleBlockSize.ThreeTall)
+            SetBlockAtBoardPosition(tempX, tempY, GetBlockAtBoardPosition(tempX, --tempY));
+        // If Three Wide, shift right
+        else if(BlockSize == PuzzleBlockSize.ThreeWide)
+            SetBlockAtBoardPosition(tempX, tempY, GetBlockAtBoardPosition(--tempX, tempY));
+
+        // Store temp block in final position
+        SetBlockAtBoardPosition(tempX, tempY, spareBlock);
+    }
+
+    void RotateActiveBlocks_Clockwise()
+    {
+
     }
 
     void DropBlocks()
