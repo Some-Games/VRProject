@@ -45,18 +45,38 @@ public class MainPuzzleLogic : MonoBehaviour
     void Update()
     {
         // UPDATE_TEST();
-        if (Input.GetKeyDown(KeyCode.A))
+        if( Input.GetKeyDown(KeyCode.A))
+        {
+            MoveActiveBlocks_Left();
+            PrintBoardToConsole();
+            print("--------------------------------------");
+        }
+        else if(Input.GetKeyDown(KeyCode.D))
+        {
+            MoveActiveBlocks_Right();
+            PrintBoardToConsole();
+            print("--------------------------------------");
+        }
+        else if (Input.GetKeyDown(KeyCode.S))
+        {
+            MoveActiveBlocks_Down();
+            PrintBoardToConsole();
+            print("--------------------------------------");
+        }
+        else if (Input.GetKeyDown(KeyCode.Q))
         {
             RotateActiveBlocks_CounterClockwise();
             PrintBoardToConsole();
             print("--------------------------------------");
         }
-        else if( Input.GetKeyDown(KeyCode.D))
+        else if (Input.GetKeyDown(KeyCode.E))
         {
             RotateActiveBlocks_Clockwise();
             PrintBoardToConsole();
             print("--------------------------------------");
         }
+        else if (Input.GetKeyDown(KeyCode.Space))
+            DropAndLockBlocks();
     }
 
     void Init_PuzzleBlockArray()
@@ -103,9 +123,6 @@ public class MainPuzzleLogic : MonoBehaviour
 
     void SpawnNewBlock()
     {
-        // TEST
-        // BlockSize = PuzzleBlockSize.ThreeWide;
-
         // Set X position of next block
         BottomLeftCornerPosition.x = (BoardWidth / 2);
         #region Old
@@ -264,7 +281,7 @@ public class MainPuzzleLogic : MonoBehaviour
             // Confirm all blocks in right-side position are empty, otherwise exit out
             for (int i = 0; i < blockHeight; ++i)
             {
-                if (GetBlockAtBoardPosition(BottomLeftCornerPosition.x + numBlocksWide + 1, BottomLeftCornerPosition.y + i) != PuzzleBlockType.Open)
+                if (GetBlockAtBoardPosition(BottomLeftCornerPosition.x + numBlocksWide, BottomLeftCornerPosition.y + i) != PuzzleBlockType.Open)
                     return; // TODO: Replace with 'Drop/Lock Blocks' later
             }
 
@@ -362,9 +379,58 @@ public class MainPuzzleLogic : MonoBehaviour
         SetBlockAtBoardPosition(tempX, tempY, spareBlock);
     }
 
-    void DropBlocks()
+    void DropAndLockBlocks()
     {
-        // Find Bottom
+        // For each row, starting with 1 and going to (width + 1)
+        for ( int x = 0; x < BoardWidth + 1; ++x )
+        {
+            // Store if we had to shift a block down this column
+            bool shiftedBlocksDown = false;
+
+            // For each column, starting with the bottom and moving up
+            for ( int y = 0; y < BoardHeight; ++y )
+            {
+                // Far left and right edges are cleared
+                if ( x == 0 || x == BoardWidth )
+                {
+                    SetBlockAtBoardPosition(x, y, PuzzleBlockType.Open);
+                }
+                // Internal blocks are shifted and locked
+                else
+                {
+                    // Store block at current position for evaluation
+                    PuzzleBlockType tempBlock = GetBlockAtBoardPosition( x, y );
+
+                    // If the current position is open and valid, continue
+                    if( tempBlock == PuzzleBlockType.Open && ( ( y + 1 ) < BoardHeight ) )
+                    {
+                        // We only want to attempt to shift the block down if the above position is valid
+                        PuzzleBlockType aboveTempBlock = GetBlockAtBoardPosition( x, y + 1 );
+
+                        // Only shift a block if not open or closed (X or O types only)
+                        if ( aboveTempBlock != PuzzleBlockType.Open && aboveTempBlock != PuzzleBlockType.Closed )
+                        {
+                            // Replace with the new 'locked' type
+                            if (aboveTempBlock == PuzzleBlockType.Block_O_Active) aboveTempBlock = PuzzleBlockType.Block_O;
+                            else if(aboveTempBlock == PuzzleBlockType.Block_X_Active) aboveTempBlock = PuzzleBlockType.Block_X;
+
+                            SetBlockAtBoardPosition( x, y, aboveTempBlock);
+                            SetBlockAtBoardPosition( x, y + 1, PuzzleBlockType.Open );
+
+                            shiftedBlocksDown = true;
+                        }
+                    }
+                }
+            }
+
+            // Repeat this column
+            if (shiftedBlocksDown) --x;
+        }
+
+        // Spawn new block and continue
+        SpawnNewBlock();
+
+        PrintBoardToConsole();
     }
     #endregion
 
