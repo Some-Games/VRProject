@@ -446,7 +446,13 @@ public class MainPuzzleLogic : MonoBehaviour
 
             for( int x = 0; x < BoardWidth + 2; ++x )
             {
-                lineString += "[ " + GetBlockAtBoardPosition(x, y) + " ]";
+                string stringTemp = "" + GetBlockAtBoardPosition(x, y);
+
+                PuzzleBlockType temp = GetBlockAtBoardPosition(x, y);
+                if( temp == PuzzleBlockType.Block_O_Active ) stringTemp = "A__O";
+                if( temp == PuzzleBlockType.Block_X_Active ) stringTemp = "A__X";
+
+                lineString += "[ " + stringTemp + " ]";
             }
 
             print( lineString );
