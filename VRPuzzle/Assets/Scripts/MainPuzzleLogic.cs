@@ -204,7 +204,10 @@ public class MainPuzzleLogic : MonoBehaviour
             for(int i = 0; i < blockWidth; ++i)
             {
                 if ( GetBlockAtBoardPosition( BottomLeftCornerPosition.x + i, BottomLeftCornerPosition.y - 1 ) != PuzzleBlockType.Open )
+                {
+                    DropAndLockBlocks();
                     return; // TODO: Replace with 'Drop/Lock Blocks' later
+                }
             }
 
             // Begin navigating blocks to their new position
@@ -382,7 +385,7 @@ public class MainPuzzleLogic : MonoBehaviour
     void DropAndLockBlocks()
     {
         // For each row, starting with 1 and going to (width + 1)
-        for ( int x = 0; x < BoardWidth + 1; ++x )
+        for ( int x = 0; x < BoardWidth + 2; ++x )
         {
             // Store if we had to shift a block down this column
             bool shiftedBlocksDown = false;
@@ -391,7 +394,7 @@ public class MainPuzzleLogic : MonoBehaviour
             for ( int y = 0; y < BoardHeight; ++y )
             {
                 // Far left and right edges are cleared
-                if ( x == 0 || x == BoardWidth )
+                if ( x == 0 || x == BoardWidth + 1)
                 {
                     SetBlockAtBoardPosition(x, y, PuzzleBlockType.Open);
                 }
