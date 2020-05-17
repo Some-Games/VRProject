@@ -189,10 +189,6 @@ public class MainPuzzleLogic : MonoBehaviour
     #region Move Blocks
     void MoveActiveBlocks_Down()
     {
-        // Find Bottom blocks, test for new positioning below
-        // print( BottomLeftCornerPosition.x + ", " + BottomLeftCornerPosition.y );
-        // print( GetBlockAtBoardPosition( BottomLeftCornerPosition.x, BottomLeftCornerPosition.y ) );
-
         // Ensure all blocks are one row above the baseline first
         if (BottomLeftCornerPosition.y >= 1)
         {
@@ -206,7 +202,7 @@ public class MainPuzzleLogic : MonoBehaviour
                 if ( GetBlockAtBoardPosition( BottomLeftCornerPosition.x + i, BottomLeftCornerPosition.y - 1 ) != PuzzleBlockType.Open )
                 {
                     DropAndLockBlocks();
-                    return; // TODO: Replace with 'Drop/Lock Blocks' later
+                    return;
                 }
             }
 
@@ -430,12 +426,39 @@ public class MainPuzzleLogic : MonoBehaviour
             if (shiftedBlocksDown) --x;
         }
 
+        // TODO: Begin pathfinding
+
         // Spawn new block and continue
         SpawnNewBlock();
 
         PrintBoardToConsole();
     }
     #endregion
+
+    IEnumerator BlocksPathfinding()
+    {
+        // CONFIRM: Block X/O exists in each column
+        // CONFIRM: Block X/O exists in (X, Y) & (X + 1, Y)
+        // RECORD ABOVE POSSIBILITIES
+
+        List<PuzzleBlockType> BlockList_X_Master = new List<PuzzleBlockType>();
+        List<PuzzleBlockType> BlockList_O_Master = new List<PuzzleBlockType>();
+
+        // Start on left side, bottom of first column
+
+        // Find first block of X/O
+
+        // Confirm all columns contain at least one of that
+
+        // Begin two threads, one from left half, center position. Moves left.
+        // Second thread from right half, center position. Moves right.
+
+        // For each thread: If blocks split, create new list with copied path. Current goes left, new goes up and/or down.
+
+        // If block cannot progress, end thread (instead of backtrack).
+
+        return null;
+    }
 
     void PrintBoardToConsole()
     {
