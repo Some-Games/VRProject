@@ -89,7 +89,8 @@ public class MainPuzzleLogic : MonoBehaviour
         SpawnNewBlock();
 
         // TEST
-        // StartCoroutine(MoveBlocksTest());
+        // SetBlockAtBoardPosition(BoardWidth / 2, 3, PuzzleBlockType.Closed);
+        // SetBlockAtBoardPosition((BoardWidth / 2) + 1, 3, PuzzleBlockType.Closed);
     }
 
     IEnumerator MoveBlocksTest()
@@ -526,20 +527,20 @@ public class MainPuzzleLogic : MonoBehaviour
                         foundThisColumn_X = true;
                     }
 
-
-
-
-
-
                     // Attempting a XOR operator. Left and right conditions must match and result in true.
                     if( !(searchingFor_X ^ foundThisColumn_X) && !(searchingFor_O ^ foundThisColumn_O) )
                     {
                         print("Column " + x_ + " passed:" );
                         print("Finding X: " + foundThisColumn_X + ", Finding O: " + foundThisColumn_O);
 
-                        // canContinue = true;
-
                         y_ = BoardHeight - 1;
+
+                        // If we've reached the far right edge and confirmed all possible blocks in each position, continue
+                        if(x_ == BoardWidth)
+                        {
+                            continuePathfinding = true;
+                            continue;
+                        }
                     }
 
                     print("Curr Y: " + y_);
@@ -573,6 +574,8 @@ public class MainPuzzleLogic : MonoBehaviour
 
             if (continuePathfinding)
             {
+                print("COMPLETED - Moving to next phase");
+
                 continuePathfinding = false;
 
                 List<PuzzleBlockType> BlockList_X_Master = new List<PuzzleBlockType>();
