@@ -123,6 +123,8 @@ public class MainPuzzleLogic : MonoBehaviour
 
     void SpawnNewBlock()
     {
+        print("NEW BLOCK SPAWNED");
+
         // Set X position of next block
         BottomLeftCornerPosition.x = (BoardWidth / 2);
         #region Old
@@ -427,39 +429,179 @@ public class MainPuzzleLogic : MonoBehaviour
         }
 
         // TODO: Begin pathfinding
+        StartCoroutine(BlocksPathfinding());
 
-        // Spawn new block and continue
-        SpawnNewBlock();
+       // Spawn new block and continue
+       SpawnNewBlock();
 
         PrintBoardToConsole();
     }
     #endregion
 
+    List<int> yPositions;
     IEnumerator BlocksPathfinding()
     {
-        // CONFIRM: Block X/O exists in each column
+        print("---------------------");
+        print("BEGIN PATHFINDING");
+        print("---------------------");
+        bool continuePathfinding = false;
+
+        #region CONFIRM: Center columns have same block type
+        int xPosCenter_LeftSide = ((BoardWidth + 2) / 2) - 1; // +2 for sidebar, /2 for middle, -1 for center adjust (Works even/odd board width)
+        yPositions = new List<int>();
+
+        bool BlockTypeFound_X = false;
+        bool BlockTypeFound_O = false;
+
+        print("X: " + (xPosCenter_LeftSide) + ", " + (xPosCenter_LeftSide + 1));
+
         // CONFIRM: Block X/O exists in (X, Y) & (X + 1, Y)
         // RECORD ABOVE POSSIBILITIES
+        for (int i = 0; i < BoardHeight; ++i)
+        {
+            PuzzleBlockType xBlock_Left = GetBlockAtBoardPosition(xPosCenter_LeftSide, i);
+            if (xBlock_Left == PuzzleBlockType.Closed || xBlock_Left == PuzzleBlockType.Open) continue;
 
-        List<PuzzleBlockType> BlockList_X_Master = new List<PuzzleBlockType>();
-        List<PuzzleBlockType> BlockList_O_Master = new List<PuzzleBlockType>();
+            PuzzleBlockType xBlock_Right = GetBlockAtBoardPosition(xPosCenter_LeftSide + 1, i);
+            if (xBlock_Right == PuzzleBlockType.Closed || xBlock_Right == PuzzleBlockType.Open) continue;
 
-        // Start on left side, bottom of first column
+            print("Y: " + xBlock_Left + ", " + xBlock_Right);
 
-        // Find first block of X/O
+            if (xBlock_Left == xBlock_Right)
+            {
+                yPositions.Add(i);
 
-        // Confirm all columns contain at least one of that
+                if (xBlock_Left == PuzzleBlockType.Block_O) BlockTypeFound_O = true;
+                else BlockTypeFound_X = true;
 
-        // Begin two threads, one from left half, center position. Moves left.
-        // Second thread from right half, center position. Moves right.
+                // We already know enough that further pathfinding is needed
+                continuePathfinding = true;
+            }
+        }
 
-        // For each thread: If blocks split, create new list with copied path. Current goes left, new goes up and/or down.
+        string yPos = "";
+        for (int i = 0; i < yPositions.Count; ++i) yPos += (yPositions[i] + " ");
+        print("Y Positions: " + yPos);
+        print("X Found: " + BlockTypeFound_X);
+        print("O Found: " + BlockTypeFound_O);
+        #endregion
 
-        // If block cannot progress, end thread (instead of backtrack).
+        #region CONFIRM: Block of given types exist in every column
+        // No need to continue if nothing found
+        if (continuePathfinding)
+        {
+            // Resetting check
+            continuePathfinding = false;
 
-        return null;
+            bool searchingFor_O = BlockTypeFound_O;
+            bool searchingFor_X = BlockTypeFound_X;
+
+            // for( int x_ = 1; x_ < BoardWidth + 1; ++x_ )
+            for (int x_ = 1; x_ < BoardWidth + 1; ++x_)
+            {
+                // Skip if center columns
+                if (x_ == xPosCenter_LeftSide || x_ == xPosCenter_LeftSide + 1) continue;
+
+                // bool canContinue = false;
+                bool foundThisColumn_O = false;
+                bool foundThisColumn_X = false;
+
+                for( int y_ = 0; y_ < BoardHeight; ++y_ )
+                {
+                    print("Testing X/Y: (" + x_ + "," + y_ + ")");
+                    
+                    PuzzleBlockType currBlock = GetBlockAtBoardPosition(x_, y_);
+
+                    if ( currBlock == PuzzleBlockType.Closed ) continue;
+
+                    if( searchingFor_O && !foundThisColumn_O && currBlock == PuzzleBlockType.Block_O )
+                    {
+                        print("Found O: " + y_);
+                        foundThisColumn_O = true;
+                    }
+
+                    if( searchingFor_X && !foundThisColumn_X && currBlock == PuzzleBlockType.Block_X )
+                    {
+                        print("Found X: " + y_);
+                        foundThisColumn_X = true;
+                    }
+
+
+
+
+
+
+                    // Attempting a XOR operator. Left and right conditions must match and result in true.
+                    if( !(searchingFor_X ^ foundThisColumn_X) && !(searchingFor_O ^ foundThisColumn_O) )
+                    {
+                        print("Column " + x_ + " passed:" );
+                        print("Finding X: " + foundThisColumn_X + ", Finding O: " + foundThisColumn_O);
+
+                        // canContinue = true;
+
+                        y_ = BoardHeight - 1;
+                    }
+
+                    print("Curr Y: " + y_);
+
+                    // If we've reached the top of the column...
+                    if ( y_ == (BoardHeight - 1) )
+                    {
+                        print( "Reached top of column" );
+
+                        // If we haven't found either X or O, move X to the far end to forcibly end
+                        if( !foundThisColumn_X && !foundThisColumn_O)
+                        {
+                            print( "Forcibly moving on" );
+
+                            x_ = BoardWidth;
+
+                            continue;
+                        }
+                        // If we've found one, turn off checks that are necessary
+                        else if( foundThisColumn_X || foundThisColumn_O )
+                        {
+                            if ( !foundThisColumn_X ) searchingFor_X = false;
+                            if ( !foundThisColumn_O ) searchingFor_O = false;
+                            print( "Turning off necessary checks - X: " + searchingFor_X + ", O: " + searchingFor_O );
+                        }
+                    }
+                }
+            }
+            
+        #endregion
+
+            if (continuePathfinding)
+            {
+                continuePathfinding = false;
+
+                List<PuzzleBlockType> BlockList_X_Master = new List<PuzzleBlockType>();
+                List<PuzzleBlockType> BlockList_O_Master = new List<PuzzleBlockType>();
+
+                // Start on left side, bottom of first column
+
+                // Find first block of X/O
+
+                // Confirm all columns contain at least one of that
+
+                // Begin two threads, one from left half, center position. Moves left.
+                // Second thread from right half, center position. Moves right.
+
+                // For each thread: If blocks split, create new list with copied path. Current goes left, new goes up and/or down.
+
+                // If block cannot progress, end thread (instead of backtrack).
+            }
+
+        }
+
+        print("---------------------");
+        print("END PATHFINDING");
+        print("---------------------");
+
+        yield return null;
     }
 
+    
     void PrintBoardToConsole()
     {
         // Ran in reverse vertically for sake of console printing
