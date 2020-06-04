@@ -77,6 +77,11 @@ public class MainPuzzleLogic : MonoBehaviour
         }
         else if (Input.GetKeyDown(KeyCode.Space))
             DropAndLockBlocks();
+
+        if (Input.GetKeyDown(KeyCode.Keypad1))
+            TEST_Board_1();
+        if (Input.GetKeyDown(KeyCode.Keypad2))
+            TEST_Board_2();
     }
 
     void Init_PuzzleBlockArray()
@@ -569,7 +574,6 @@ public class MainPuzzleLogic : MonoBehaviour
                     }
                 }
             }
-            
         #endregion
 
             if (continuePathfinding)
@@ -578,8 +582,36 @@ public class MainPuzzleLogic : MonoBehaviour
 
                 continuePathfinding = false;
 
-                List<PuzzleBlockType> BlockList_X_Master = new List<PuzzleBlockType>();
-                List<PuzzleBlockType> BlockList_O_Master = new List<PuzzleBlockType>();
+                List<Vector2Int> BlockList_X_Master_L2R = new List<Vector2Int>();
+                List<Vector2Int> BlockList_X_Master_R2L = new List<Vector2Int>();
+                List<Vector2Int> BlockList_O_Master_L2R = new List<Vector2Int>();
+                List<Vector2Int> BlockList_O_Master_R2L = new List<Vector2Int>();
+
+                // THOUGHT PROCESS:
+                // Start in center, pathfind outward, since we already know potential paths
+                foreach ( var thisY in yPositions ) // Oddly, this only needs to return the relevant Y coordinates
+                {
+                    // tester += "Pos: " + yPositions[thisY] + ", " + GetBlockAtBoardPosition(BoardWidth / 2, yPositions[thisY]) + " - ";
+                    PuzzleBlockType tempBlock = GetBlockAtBoardPosition((BoardWidth + 2) / 2, thisY);
+
+                    Vector2Int tempVInt2;
+                    if (tempBlock == PuzzleBlockType.Block_X)
+                    {
+                        tempVInt2 = new Vector2Int((((BoardWidth + 2) / 2) + 1), thisY);
+                        BlockList_X_Master_L2R.Add(tempVInt2);
+
+                        tempVInt2 = new Vector2Int(((BoardWidth + 2) / 2), thisY);
+                        BlockList_X_Master_R2L.Add(tempVInt2);
+                    }
+                    else
+                    {
+                        tempVInt2 = new Vector2Int((((BoardWidth + 2) / 2) + 1), thisY);
+                        BlockList_O_Master_L2R.Add(tempVInt2);
+
+                        tempVInt2 = new Vector2Int(((BoardWidth + 2) / 2), thisY);
+                        BlockList_O_Master_R2L.Add(tempVInt2);
+                    }
+                }
 
                 // Start on left side, bottom of first column
 
@@ -604,7 +636,6 @@ public class MainPuzzleLogic : MonoBehaviour
         yield return null;
     }
 
-    
     void PrintBoardToConsole()
     {
         // Ran in reverse vertically for sake of console printing
@@ -656,6 +687,69 @@ public class MainPuzzleLogic : MonoBehaviour
             print("--------------------------------------");
 
             PrintBoardToConsole();
+        }
+    }
+
+    void TEST_Board_1()
+    {
+        ClearBoard();
+
+        for( int i = 1; i < BoardWidth + 1; ++i )
+        {
+            SetBlockAtBoardPosition(i, 0, PuzzleBlockType.Block_O);
+        }
+
+        DropAndLockBlocks();
+    }
+
+    void TEST_Board_2()
+    {
+        ClearBoard();
+
+        for( int y = 0; y < BoardHeight; ++y)
+        {
+            for (int x = 1; x < BoardWidth + 1; ++x)
+            {
+                if( y < 4 )
+                {
+                    if (x < (((BoardWidth + 2) / 2) - 1) || x > (((BoardWidth + 2) / 2) + 1))
+                    {
+                        SetBlockAtBoardPosition(x, y, PuzzleBlockType.Block_O);
+                    }
+                    else
+                    {
+                        SetBlockAtBoardPosition(x, y, PuzzleBlockType.Block_X);
+                    }
+                }
+                else if (y == 4)
+                {
+                    if( x >= ((BoardWidth / 2) - 1) || x < ((BoardWidth / 2) + 1) )
+                    {
+                        SetBlockAtBoardPosition(x, y, PuzzleBlockType.Block_O);
+                    }
+                }
+            }
+        }
+        
+
+        DropAndLockBlocks();
+    }
+
+    void ClearBoard()
+    {
+        PuzzleBlockType tempBlock;
+
+        for (int y = 0; y < BoardHeight; ++y)
+        {
+            for (int x = 0; x < BoardWidth + 2; ++x)
+            {
+                tempBlock = GetBlockAtBoardPosition(x, y);
+
+                if (tempBlock == PuzzleBlockType.Block_O_Active || tempBlock == PuzzleBlockType.Block_X_Active)
+                    continue;
+
+                SetBlockAtBoardPosition(x, y, PuzzleBlockType.Open);
+            }
         }
     }
 }
