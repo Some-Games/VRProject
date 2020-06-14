@@ -749,8 +749,8 @@ public class MainPuzzleLogic : MonoBehaviour
             int tempX = thisPos.x - 1;
             if (thisQuadrant == Direction.Right) tempX = thisPos.x + 1;
 
-            PuzzleBlockType nextBlock = GetBlockAtBoardPosition(tempX, thisPos.y);
-            if (nextBlock == tempBlock)
+            PuzzleBlockType nextBlockType = GetBlockAtBoardPosition(tempX, thisPos.y);
+            if (nextBlockType == tempBlock)
             {
                 // Since we're progressing in direction, if block is on far left (right) edge, success!
                 if(thisPos.x == BoardEdge_Horiz_Left || thisPos.x == BoardEdge_Horiz_Right)
@@ -761,8 +761,12 @@ public class MainPuzzleLogic : MonoBehaviour
                 }
                 else
                 {
-                    if (thisQuadrant == Direction.Left) canGoLeft = true;
-                    else canGoRight = true;
+                    // Compare against list for safety
+                    if(PreviousBlocksSafe(tempX, thisPos.y, tempList))
+                    {
+                        if (thisQuadrant == Direction.Left) canGoLeft = true;
+                        else canGoRight = true;
+                    }
                 }
             }
 
@@ -770,20 +774,32 @@ public class MainPuzzleLogic : MonoBehaviour
             int tempY = thisPos.y - 1;
             if(tempY >= 0)
             {
-                nextBlock = GetBlockAtBoardPosition(thisPos.x, tempY);
+                nextBlockType = GetBlockAtBoardPosition(thisPos.x, tempY);
 
-                if(nextBlock == tempBlock)
-                    canGoDown = true;
+                if (nextBlockType == tempBlock)
+                {
+                    // Compare against list for safety
+                    if (PreviousBlocksSafe(tempX, thisPos.y, tempList))
+                    {
+                        canGoDown = true;
+                    }
+                }
             }
 
             // Check Up
             tempY = thisPos.y + 1;
             if(tempY <= BoardHeight - 1)
             {
-                nextBlock = GetBlockAtBoardPosition(thisPos.x, tempY);
+                nextBlockType = GetBlockAtBoardPosition(thisPos.x, tempY);
 
-                if(nextBlock == tempBlock)
-                    canGoUp = true;
+                if (nextBlockType == tempBlock)
+                {
+                    // Compare against list for safety
+                    if (PreviousBlocksSafe(tempX, thisPos.y, tempList))
+                    {
+                        canGoUp = true;
+                    }
+                }
             }
 
             // Check Right (Left)
@@ -793,12 +809,16 @@ public class MainPuzzleLogic : MonoBehaviour
             // Can't be center columns (YET)
             if(tempX != xPosCenter_LeftSide && tempX != xPosCenter_LeftSide + 1)
             {
-                nextBlock = GetBlockAtBoardPosition(tempX, thisPos.y);
+                nextBlockType = GetBlockAtBoardPosition(tempX, thisPos.y);
 
-                if(nextBlock == tempBlock)
+                if(nextBlockType == tempBlock)
                 {
-                    if (thisQuadrant == Direction.Left) canGoRight = true;
-                    else canGoLeft = true;
+                    // Compare against list for safety
+                    if (PreviousBlocksSafe(tempX, thisPos.y, tempList))
+                    {
+                        if (thisQuadrant == Direction.Left) canGoRight = true;
+                        else canGoLeft = true;
+                    }
                 }
             }
             #endregion
@@ -816,6 +836,27 @@ public class MainPuzzleLogic : MonoBehaviour
         }
 
         yield return FoundEnd;
+    }
+
+
+    bool PreviousBlocksSafe(Vector2Int nextPos_, List<PathfindingBlock> testList_)
+    {
+        bool isSafe = true;
+
+        // If the previou
+        if (testList_[testList_.Count - 1].BoardLocation == nextPos_) isSafe = false;
+
+        if(testList_.Count >= 4)
+            for(int i = 3; i < testList_.Count - 1; ++i)
+                if (testList_[i].BoardLocation == nextPos_) isSafe = false;
+
+        return isSafe;
+    }
+    bool PreviousBlocksSafe(int x_, int y_, List<PathfindingBlock> testList_)
+    {
+        Vector2Int tempV2Int = new Vector2Int(x_, y_);
+
+        return PreviousBlocksSafe(tempV2Int, testList_);
     }
 
     void PrintBoardToConsole()
