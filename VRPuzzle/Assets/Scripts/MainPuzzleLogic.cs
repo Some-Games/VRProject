@@ -52,6 +52,9 @@ public class MainPuzzleLogic : MonoBehaviour
     #region Initial board information
     int BoardWidth = 8;
     int BoardHeight = 9;
+    int xPosCenter_LeftSide;
+    int BoardEdge_Horiz_Left;
+    int BoardEdge_Horiz_Right;
     List<PuzzleBlockType> PuzzleBlockArray;
     #endregion
 
@@ -63,6 +66,10 @@ public class MainPuzzleLogic : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        xPosCenter_LeftSide = ((BoardWidth + 2) / 2) - 1; // +2 for sidebar, /2 for middle, -1 for center adjust (Works even/odd board width)
+        BoardEdge_Horiz_Left = 1;
+        BoardEdge_Horiz_Right = BoardWidth + 1;
+
         Init_PuzzleBlockArray();
 
         PrintBoardToConsole();
@@ -490,7 +497,7 @@ public class MainPuzzleLogic : MonoBehaviour
         bool continuePathfinding = false;
 
         #region CONFIRM: Center columns have same block type
-        int xPosCenter_LeftSide = ((BoardWidth + 2) / 2) - 1; // +2 for sidebar, /2 for middle, -1 for center adjust (Works even/odd board width)
+        
         yPositions = new List<int>();
 
         bool BlockTypeFound_X = false;
@@ -719,19 +726,93 @@ public class MainPuzzleLogic : MonoBehaviour
         List<PathfindingBlock> tempList = new List<PathfindingBlock>();
         tempList.Add(thisBlock_);
 
-        int i = 0;
-
         PuzzleBlockType tempBlock = GetBlockAtBoardPosition(thisBlock_.BoardLocation);
 
         // PATH: Desired direction, down, up, opposite direction
         while( !FoundEnd )
         {
-            ++i;
+            Direction thisQuadrant = Direction.Left;
+            if(thisBlock_.BoardLocation.x >= (xPosCenter_LeftSide + 1))
+                thisQuadrant = Direction.Right;
 
-            print(thisBlock_.NextDirection + " half - " + tempBlock + ": " + thisBlock_.BoardLocation);
+            #region Check possible routes. Left/Right, Down, Up, Right/Left
+            bool canGoLeft = false;
+            bool canGoDown = false;
+            bool canGoUp = false;
+            bool canGoRight = false;
+            Vector2Int thisPos = thisBlock_.BoardLocation;
+            Direction nextDir = thisBlock_.NextDirection;
+
+            // TODO: ENSURE BLOCK CHECKED DOES NOT EXIST IN LIST
+
+            // Check Left (Right)
+            int tempX = thisPos.x - 1;
+            if (thisQuadrant == Direction.Right) tempX = thisPos.x + 1;
+
+            PuzzleBlockType nextBlock = GetBlockAtBoardPosition(tempX, thisPos.y);
+            if (nextBlock == tempBlock)
+            {
+                // Since we're progressing in direction, if block is on far left (right) edge, success!
+                if(thisPos.x == BoardEdge_Horiz_Left || thisPos.x == BoardEdge_Horiz_Right)
+                {
+                    // Add final block to list
+
+                    // Break out
+                }
+                else
+                {
+                    if (thisQuadrant == Direction.Left) canGoLeft = true;
+                    else canGoRight = true;
+                }
+            }
+
+            // Check Down
+            int tempY = thisPos.y - 1;
+            if(tempY >= 0)
+            {
+                nextBlock = GetBlockAtBoardPosition(thisPos.x, tempY);
+
+                if(nextBlock == tempBlock)
+                    canGoDown = true;
+            }
+
+            // Check Up
+            tempY = thisPos.y + 1;
+            if(tempY <= BoardHeight - 1)
+            {
+                nextBlock = GetBlockAtBoardPosition(thisPos.x, tempY);
+
+                if(nextBlock == tempBlock)
+                    canGoUp = true;
+            }
+
+            // Check Right (Left)
+            tempX = thisPos.x + 1;
+            if (thisQuadrant == Direction.Right) tempX = thisPos.x - 1;
+
+            // Can't be center columns (YET)
+            if(tempX != xPosCenter_LeftSide && tempX != xPosCenter_LeftSide + 1)
+            {
+                nextBlock = GetBlockAtBoardPosition(tempX, thisPos.y);
+
+                if(nextBlock == tempBlock)
+                {
+                    if (thisQuadrant == Direction.Left) canGoRight = true;
+                    else canGoLeft = true;
+                }
+            }
+            #endregion
+
+            print("(Quad: " + thisQuadrant + ", " + tempBlock + ")");
+            print("LEFT: " + canGoLeft);
+            print("DOWN: " + canGoDown);
+            print("UP: " + canGoUp);
+            print("RIGHT: " + canGoRight);
+
 
             FoundEnd = true;
-            print("ENDING: " + thisBlock_.NextDirection + " half - " + tempBlock);
+
+            // If multiple exist, run additional threads with new info
         }
 
         yield return FoundEnd;
