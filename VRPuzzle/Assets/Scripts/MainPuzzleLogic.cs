@@ -1,7 +1,34 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
+
+internal class PathfindingBlock
+{
+    internal Vector2Int BoardLocation;
+    internal Direction NextDirection;
+
+    internal PathfindingBlock()
+    {
+        BoardLocation = new Vector2Int();
+        NextDirection = Direction.Down;
+    }
+
+    internal PathfindingBlock(Vector2Int BoardLocation_ , Direction NextDirection_ )
+    {
+        BoardLocation = BoardLocation_;
+        NextDirection = NextDirection_;
+    }
+}
+
+public enum Direction
+{
+    Up,
+    Down,
+    Left,
+    Right
+}
 
 public enum PuzzleBlockType
 {
@@ -23,7 +50,7 @@ public enum PuzzleBlockSize
 public class MainPuzzleLogic : MonoBehaviour
 {
     #region Initial board information
-    int BoardWidth = 7;
+    int BoardWidth = 8;
     int BoardHeight = 9;
     List<PuzzleBlockType> PuzzleBlockArray;
     #endregion
@@ -175,6 +202,10 @@ public class MainPuzzleLogic : MonoBehaviour
         }
     }
 
+    PuzzleBlockType GetBlockAtBoardPosition( Vector2Int pos_ )
+    {
+        return GetBlockAtBoardPosition(pos_.x, pos_.y);
+    }
     PuzzleBlockType GetBlockAtBoardPosition( int x_, int y_ )
     {
         return PuzzleBlockArray[(y_ * (BoardWidth + 2)) + x_];
@@ -435,18 +466,24 @@ public class MainPuzzleLogic : MonoBehaviour
         }
 
         // TODO: Begin pathfinding
-        StartCoroutine(BlocksPathfinding());
+        // StartCoroutine(BlocksPathfinding());
+        BlocksPathfinding();
 
-       // Spawn new block and continue
-       SpawnNewBlock();
+        // Spawn new block and continue
+        SpawnNewBlock();
 
         PrintBoardToConsole();
     }
     #endregion
 
     List<int> yPositions;
-    IEnumerator BlocksPathfinding()
+    void BlocksPathfinding()
     {
+        // TODO: Remove print checks
+        bool print_stage_1 = false;
+        bool print_stage_2 = false;
+        bool print_stage_3 = true;
+
         print("---------------------");
         print("BEGIN PATHFINDING");
         print("---------------------");
@@ -459,7 +496,12 @@ public class MainPuzzleLogic : MonoBehaviour
         bool BlockTypeFound_X = false;
         bool BlockTypeFound_O = false;
 
-        print("X: " + (xPosCenter_LeftSide) + ", " + (xPosCenter_LeftSide + 1));
+        List<PathfindingBlock> BlockList_X_Master_LeftSection;
+        List<PathfindingBlock> BlockList_X_Master_RightSection;
+        List<PathfindingBlock> BlockList_O_Master_LeftSection;
+        List<PathfindingBlock> BlockList_O_Master_RightSection;
+
+        if(print_stage_1) print("X: " + (xPosCenter_LeftSide) + ", " + (xPosCenter_LeftSide + 1));
 
         // CONFIRM: Block X/O exists in (X, Y) & (X + 1, Y)
         // RECORD ABOVE POSSIBILITIES
@@ -471,7 +513,7 @@ public class MainPuzzleLogic : MonoBehaviour
             PuzzleBlockType xBlock_Right = GetBlockAtBoardPosition(xPosCenter_LeftSide + 1, i);
             if (xBlock_Right == PuzzleBlockType.Closed || xBlock_Right == PuzzleBlockType.Open) continue;
 
-            print("Y: " + xBlock_Left + ", " + xBlock_Right);
+            if (print_stage_1) print("Y: " + xBlock_Left + ", " + xBlock_Right);
 
             if (xBlock_Left == xBlock_Right)
             {
@@ -487,12 +529,16 @@ public class MainPuzzleLogic : MonoBehaviour
 
         string yPos = "";
         for (int i = 0; i < yPositions.Count; ++i) yPos += (yPositions[i] + " ");
-        print("Y Positions: " + yPos);
-        print("X Found: " + BlockTypeFound_X);
-        print("O Found: " + BlockTypeFound_O);
+        if (print_stage_1)
+        {
+            print("Y Positions: " + yPos);
+            print("X Found: " + BlockTypeFound_X);
+            print("O Found: " + BlockTypeFound_O);
+        }
         #endregion
 
         #region CONFIRM: Block of given types exist in every column
+
         // No need to continue if nothing found
         if (continuePathfinding)
         {
@@ -514,7 +560,7 @@ public class MainPuzzleLogic : MonoBehaviour
 
                 for( int y_ = 0; y_ < BoardHeight; ++y_ )
                 {
-                    print("Testing X/Y: (" + x_ + "," + y_ + ")");
+                    if(print_stage_2) print("Testing X/Y: (" + x_ + "," + y_ + ")");
                     
                     PuzzleBlockType currBlock = GetBlockAtBoardPosition(x_, y_);
 
@@ -522,21 +568,21 @@ public class MainPuzzleLogic : MonoBehaviour
 
                     if( searchingFor_O && !foundThisColumn_O && currBlock == PuzzleBlockType.Block_O )
                     {
-                        print("Found O: " + y_);
+                        if (print_stage_2) print("Found O: " + y_);
                         foundThisColumn_O = true;
                     }
 
                     if( searchingFor_X && !foundThisColumn_X && currBlock == PuzzleBlockType.Block_X )
                     {
-                        print("Found X: " + y_);
+                        if (print_stage_2) print("Found X: " + y_);
                         foundThisColumn_X = true;
                     }
 
                     // Attempting a XOR operator. Left and right conditions must match and result in true.
                     if( !(searchingFor_X ^ foundThisColumn_X) && !(searchingFor_O ^ foundThisColumn_O) )
                     {
-                        print("Column " + x_ + " passed:" );
-                        print("Finding X: " + foundThisColumn_X + ", Finding O: " + foundThisColumn_O);
+                        if (print_stage_2) print("Column " + x_ + " passed:" );
+                        if (print_stage_2) print("Finding X: " + foundThisColumn_X + ", Finding O: " + foundThisColumn_O);
 
                         y_ = BoardHeight - 1;
 
@@ -548,17 +594,17 @@ public class MainPuzzleLogic : MonoBehaviour
                         }
                     }
 
-                    print("Curr Y: " + y_);
+                    if (print_stage_2) print("Curr Y: " + y_);
 
                     // If we've reached the top of the column...
                     if ( y_ == (BoardHeight - 1) )
                     {
-                        print( "Reached top of column" );
+                        if (print_stage_2) print( "Reached top of column" );
 
                         // If we haven't found either X or O, move X to the far end to forcibly end
                         if( !foundThisColumn_X && !foundThisColumn_O)
                         {
-                            print( "Forcibly moving on" );
+                            if (print_stage_2) print( "Check failed - Forcibly ending pathfinding" );
 
                             x_ = BoardWidth;
 
@@ -569,71 +615,126 @@ public class MainPuzzleLogic : MonoBehaviour
                         {
                             if ( !foundThisColumn_X ) searchingFor_X = false;
                             if ( !foundThisColumn_O ) searchingFor_O = false;
-                            print( "Turning off necessary checks - X: " + searchingFor_X + ", O: " + searchingFor_O );
+                            if (print_stage_2) print( "Turning off necessary checks - X: " + searchingFor_X + ", O: " + searchingFor_O );
                         }
                     }
                 }
             }
+        }
         #endregion
 
-            if (continuePathfinding)
+        #region BEGIN: Pathfinding check
+        if (continuePathfinding)
+        {
+            if(print_stage_3) print("Pathfinding - STARTING FINAL PHASE");
+
+            BlockList_X_Master_LeftSection = new List<PathfindingBlock>();
+            BlockList_X_Master_RightSection = new List<PathfindingBlock>();
+            BlockList_O_Master_LeftSection = new List<PathfindingBlock>();
+            BlockList_O_Master_RightSection = new List<PathfindingBlock>();
+
+            // THOUGHT PROCESS:
+            // Start in center, pathfind outward, since we already know potential paths
+            foreach (var thisY in yPositions) // Oddly, this only needs to return the relevant Y coordinates
             {
-                print("COMPLETED - Moving to next phase");
+                // Get the block type at this Y position for consideration
+                PuzzleBlockType tempBlock = GetBlockAtBoardPosition(xPosCenter_LeftSide, thisY);
 
-                continuePathfinding = false;
+                // Left half, begin pathing left toward left edge
+                Vector2Int tempV2Int_Left = new Vector2Int(xPosCenter_LeftSide, thisY);
+                Vector2Int tempV2Int_Right = new Vector2Int(xPosCenter_LeftSide + 1, thisY);
 
-                List<Vector2Int> BlockList_X_Master_L2R = new List<Vector2Int>();
-                List<Vector2Int> BlockList_X_Master_R2L = new List<Vector2Int>();
-                List<Vector2Int> BlockList_O_Master_L2R = new List<Vector2Int>();
-                List<Vector2Int> BlockList_O_Master_R2L = new List<Vector2Int>();
-
-                // THOUGHT PROCESS:
-                // Start in center, pathfind outward, since we already know potential paths
-                foreach ( var thisY in yPositions ) // Oddly, this only needs to return the relevant Y coordinates
+                // Pre-load each side of the midpoint with this block type, AND give a direction
+                if (tempBlock == PuzzleBlockType.Block_X)
                 {
-                    // tester += "Pos: " + yPositions[thisY] + ", " + GetBlockAtBoardPosition(BoardWidth / 2, yPositions[thisY]) + " - ";
-                    PuzzleBlockType tempBlock = GetBlockAtBoardPosition((BoardWidth + 2) / 2, thisY);
-
-                    Vector2Int tempVInt2;
-                    if (tempBlock == PuzzleBlockType.Block_X)
-                    {
-                        tempVInt2 = new Vector2Int((((BoardWidth + 2) / 2) + 1), thisY);
-                        BlockList_X_Master_L2R.Add(tempVInt2);
-
-                        tempVInt2 = new Vector2Int(((BoardWidth + 2) / 2), thisY);
-                        BlockList_X_Master_R2L.Add(tempVInt2);
-                    }
-                    else
-                    {
-                        tempVInt2 = new Vector2Int((((BoardWidth + 2) / 2) + 1), thisY);
-                        BlockList_O_Master_L2R.Add(tempVInt2);
-
-                        tempVInt2 = new Vector2Int(((BoardWidth + 2) / 2), thisY);
-                        BlockList_O_Master_R2L.Add(tempVInt2);
-                    }
+                    BlockList_X_Master_LeftSection.Add(new PathfindingBlock(tempV2Int_Left, Direction.Left));
+                    BlockList_X_Master_RightSection.Add(new PathfindingBlock(tempV2Int_Right, Direction.Right));
                 }
-
-                // Start on left side, bottom of first column
-
-                // Find first block of X/O
-
-                // Confirm all columns contain at least one of that
-
-                // Begin two threads, one from left half, center position. Moves left.
-                // Second thread from right half, center position. Moves right.
-
-                // For each thread: If blocks split, create new list with copied path. Current goes left, new goes up and/or down.
-
-                // If block cannot progress, end thread (instead of backtrack).
+                else
+                {
+                    BlockList_O_Master_LeftSection.Add(new PathfindingBlock(tempV2Int_Left, Direction.Left));
+                    BlockList_O_Master_RightSection.Add(new PathfindingBlock(tempV2Int_Right, Direction.Right));
+                }
             }
 
+            List<IEnumerator> PathfindingCoRoutines = new List<IEnumerator>();
+
+            // Add a series of paths for each valid possibility
+            foreach (PathfindingBlock path in BlockList_O_Master_LeftSection)
+                PathfindingCoRoutines.Add(Thread_Pathfinding(path));
+
+            foreach (PathfindingBlock path in BlockList_O_Master_RightSection)
+                PathfindingCoRoutines.Add(Thread_Pathfinding(path));
+
+            foreach (PathfindingBlock path in BlockList_X_Master_LeftSection)
+                PathfindingCoRoutines.Add(Thread_Pathfinding(path));
+
+            foreach (PathfindingBlock path in BlockList_X_Master_RightSection)
+                PathfindingCoRoutines.Add(Thread_Pathfinding(path));
+
+            // Start
+            foreach (IEnumerator path in PathfindingCoRoutines)
+                StartCoroutine(path);
+
+            /*
+        foreach( PathfindingBlock path in BlockList_O_Master_LeftSection )
+            StartCoroutine(Thread_Pathfinding(path));
+
+        foreach (PathfindingBlock path in BlockList_O_Master_RightSection)
+            StartCoroutine(Thread_Pathfinding(path));
+
+        foreach (PathfindingBlock path in BlockList_X_Master_LeftSection)
+            StartCoroutine(Thread_Pathfinding(path));
+
+        foreach (PathfindingBlock path in BlockList_X_Master_RightSection)
+            StartCoroutine(Thread_Pathfinding(path));
+        */
+
+            // Start on left side, bottom of first column
+
+            // Find first block of X/O
+
+            // Confirm all columns contain at least one of that
+
+            // Begin two threads, one from left half, center position. Moves left.
+            // Second thread from right half, center position. Moves right.
+
+            // For each thread: If blocks split, create new list with copied path. Current goes left, new goes up and/or down.
+
+            // If block cannot progress, end thread (instead of backtrack).
         }
+        #endregion
 
         print("---------------------");
         print("END PATHFINDING");
         print("---------------------");
 
-        yield return null;
+        // yield return null;
+    }
+
+    IEnumerator Thread_Pathfinding( PathfindingBlock thisBlock_ )
+    {
+        bool FoundEnd = false;
+
+        List<PathfindingBlock> tempList = new List<PathfindingBlock>();
+        tempList.Add(thisBlock_);
+
+        int i = 0;
+
+        PuzzleBlockType tempBlock = GetBlockAtBoardPosition(thisBlock_.BoardLocation);
+
+        // PATH: Desired direction, down, up, opposite direction
+        while( !FoundEnd )
+        {
+            ++i;
+
+            print(thisBlock_.NextDirection + " half - " + tempBlock + ": " + thisBlock_.BoardLocation);
+
+            FoundEnd = true;
+            print("ENDING: " + thisBlock_.NextDirection + " half - " + tempBlock);
+        }
+
+        yield return FoundEnd;
     }
 
     void PrintBoardToConsole()
