@@ -8,17 +8,28 @@ internal class PathfindingBlock
 {
     internal Vector2Int BoardLocation;
     internal Direction NextDirection;
+    internal PuzzleBlockType BlockType;
 
     internal PathfindingBlock()
     {
         BoardLocation = new Vector2Int();
         NextDirection = Direction.Down;
+        BlockType = PuzzleBlockType.Open;
     }
 
-    internal PathfindingBlock(Vector2Int BoardLocation_ , Direction NextDirection_ )
+    internal PathfindingBlock(Vector2Int BoardLocation_ , Direction NextDirection_, PuzzleBlockType BlockType_ )
     {
         BoardLocation = BoardLocation_;
         NextDirection = NextDirection_;
+        BlockType = BlockType_;
+    }
+
+    internal PuzzleBlockType GetBlockType
+    {
+        get
+        {
+            return BlockType;
+        }
     }
 }
 
@@ -503,10 +514,8 @@ public class MainPuzzleLogic : MonoBehaviour
         bool BlockTypeFound_X = false;
         bool BlockTypeFound_O = false;
 
-        List<PathfindingBlock> BlockList_X_Master_LeftSection;
-        List<PathfindingBlock> BlockList_X_Master_RightSection;
-        List<PathfindingBlock> BlockList_O_Master_LeftSection;
-        List<PathfindingBlock> BlockList_O_Master_RightSection;
+        List<PathfindingBlock> BlockList_Master_LeftSection;
+        List<PathfindingBlock> BlockList_Master_RightSection;
 
         if(print_stage_1) print("X: " + (xPosCenter_LeftSide) + ", " + (xPosCenter_LeftSide + 1));
 
@@ -630,15 +639,15 @@ public class MainPuzzleLogic : MonoBehaviour
         }
         #endregion
 
-        #region BEGIN: Pathfinding check
+        // #region BEGIN: Pathfinding check
+        #region CONFIRM: Populate lists with initial valid blocks
         if (continuePathfinding)
         {
-            if(print_stage_3) print("Pathfinding - STARTING FINAL PHASE");
+            // if(print_stage_3) print("Pathfinding - STARTING FINAL PHASE");
+            if (print_stage_3) print("Pathfinding - POPULATING LISTS");
 
-            BlockList_X_Master_LeftSection = new List<PathfindingBlock>();
-            BlockList_X_Master_RightSection = new List<PathfindingBlock>();
-            BlockList_O_Master_LeftSection = new List<PathfindingBlock>();
-            BlockList_O_Master_RightSection = new List<PathfindingBlock>();
+            BlockList_Master_LeftSection = new List<PathfindingBlock>();
+            BlockList_Master_RightSection = new List<PathfindingBlock>();
 
             // THOUGHT PROCESS:
             // Start in center, pathfind outward, since we already know potential paths
@@ -647,55 +656,28 @@ public class MainPuzzleLogic : MonoBehaviour
                 // Get the block type at this Y position for consideration
                 PuzzleBlockType tempBlock = GetBlockAtBoardPosition(xPosCenter_LeftSide, thisY);
 
-                // Left half, begin pathing left toward left edge
+                // Left half, add to the list
                 Vector2Int tempV2Int_Left = new Vector2Int(xPosCenter_LeftSide, thisY);
                 Vector2Int tempV2Int_Right = new Vector2Int(xPosCenter_LeftSide + 1, thisY);
 
-                // Pre-load each side of the midpoint with this block type, AND give a direction
-                if (tempBlock == PuzzleBlockType.Block_X)
-                {
-                    BlockList_X_Master_LeftSection.Add(new PathfindingBlock(tempV2Int_Left, Direction.Left));
-                    BlockList_X_Master_RightSection.Add(new PathfindingBlock(tempV2Int_Right, Direction.Right));
-                }
-                else
-                {
-                    BlockList_O_Master_LeftSection.Add(new PathfindingBlock(tempV2Int_Left, Direction.Left));
-                    BlockList_O_Master_RightSection.Add(new PathfindingBlock(tempV2Int_Right, Direction.Right));
-                }
+                BlockList_Master_LeftSection.Add( new PathfindingBlock( tempV2Int_Left, Direction.Left, tempBlock ) );
+                BlockList_Master_RightSection.Add( new PathfindingBlock( tempV2Int_Right, Direction.Right , tempBlock ) );
             }
 
             List<IEnumerator> PathfindingCoRoutines = new List<IEnumerator>();
 
             // Add a series of paths for each valid possibility
-            foreach (PathfindingBlock path in BlockList_O_Master_LeftSection)
+            foreach (PathfindingBlock path in BlockList_Master_LeftSection)
                 PathfindingCoRoutines.Add(Thread_Pathfinding(path));
 
-            foreach (PathfindingBlock path in BlockList_O_Master_RightSection)
-                PathfindingCoRoutines.Add(Thread_Pathfinding(path));
-
-            foreach (PathfindingBlock path in BlockList_X_Master_LeftSection)
-                PathfindingCoRoutines.Add(Thread_Pathfinding(path));
-
-            foreach (PathfindingBlock path in BlockList_X_Master_RightSection)
+            foreach (PathfindingBlock path in BlockList_Master_RightSection)
                 PathfindingCoRoutines.Add(Thread_Pathfinding(path));
 
             // Start
             foreach (IEnumerator path in PathfindingCoRoutines)
                 StartCoroutine(path);
 
-            /*
-        foreach( PathfindingBlock path in BlockList_O_Master_LeftSection )
-            StartCoroutine(Thread_Pathfinding(path));
-
-        foreach (PathfindingBlock path in BlockList_O_Master_RightSection)
-            StartCoroutine(Thread_Pathfinding(path));
-
-        foreach (PathfindingBlock path in BlockList_X_Master_LeftSection)
-            StartCoroutine(Thread_Pathfinding(path));
-
-        foreach (PathfindingBlock path in BlockList_X_Master_RightSection)
-            StartCoroutine(Thread_Pathfinding(path));
-        */
+            if (print_stage_3) print( "Starting Pathfinding Coroutines on " + PathfindingCoRoutines.Count + " paths" );
 
             // Start on left side, bottom of first column
 
@@ -875,6 +857,9 @@ public class MainPuzzleLogic : MonoBehaviour
                 if( temp == PuzzleBlockType.Block_X_Active ) stringTemp = "A__X";
 
                 lineString += "[ " + stringTemp + " ]";
+
+                if (x == xPosCenter_LeftSide)
+                    lineString += " || ";
             }
 
             print( lineString );
