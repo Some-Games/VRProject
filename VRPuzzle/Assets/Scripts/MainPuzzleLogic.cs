@@ -127,6 +127,8 @@ public class MainPuzzleLogic : MonoBehaviour
             TEST_Board_1();
         if (Input.GetKeyDown(KeyCode.Keypad2))
             TEST_Board_2();
+        if (Input.GetKeyDown(KeyCode.Keypad3))
+            TEST_Board_3();
     }
 
     void Init_PuzzleBlockArray()
@@ -495,6 +497,7 @@ public class MainPuzzleLogic : MonoBehaviour
     #endregion
 
     List<int> yPositions;
+    List<PathfindingBlock> SuccessfulPaths;
     void BlocksPathfinding()
     {
         // TODO: Remove print checks
@@ -670,14 +673,20 @@ public class MainPuzzleLogic : MonoBehaviour
             foreach (PathfindingBlock path in BlockList_Master_LeftSection)
                 PathfindingCoRoutines.Add(Thread_Pathfinding(path));
 
+            /* TODO: Remove this comment and run both halves
             foreach (PathfindingBlock path in BlockList_Master_RightSection)
                 PathfindingCoRoutines.Add(Thread_Pathfinding(path));
+            */
+
+            SuccessfulPaths = new List<PathfindingBlock>();
 
             // Start
             foreach (IEnumerator path in PathfindingCoRoutines)
                 StartCoroutine(path);
 
             if (print_stage_3) print( "Starting Pathfinding Coroutines on " + PathfindingCoRoutines.Count + " paths" );
+
+            print( "Paths Found: " + SuccessfulPaths.Count );
 
             // Start on left side, bottom of first column
 
@@ -705,6 +714,11 @@ public class MainPuzzleLogic : MonoBehaviour
     {
         bool FoundEnd = false;
 
+        print( "Starting at " + thisBlock_.BoardLocation + " with type " + thisBlock_.BlockType );
+        if( thisBlock_.BlockType == PuzzleBlockType.Block_O)
+            SuccessfulPaths.Add(thisBlock_);
+
+        /*
         List<PathfindingBlock> tempList = new List<PathfindingBlock>();
         tempList.Add(thisBlock_);
 
@@ -816,6 +830,7 @@ public class MainPuzzleLogic : MonoBehaviour
 
             // If multiple exist, run additional threads with new info
         }
+        */
 
         yield return FoundEnd;
     }
@@ -939,6 +954,21 @@ public class MainPuzzleLogic : MonoBehaviour
             }
         }
         
+        DropAndLockBlocks();
+    }
+
+    void TEST_Board_3()
+    {
+        ClearBoard();
+
+        for (int y = 0; y < BoardHeight; ++y)
+        {
+            for (int x = 1; x < BoardWidth + 1; ++x)
+            {
+                if( y == 0 || ( x == xPosCenter_LeftSide && y < 4) || (x == xPosCenter_LeftSide + 1 && y < 4 ) )
+                    SetBlockAtBoardPosition(x, y, PuzzleBlockType.Block_X);
+            }
+        }
 
         DropAndLockBlocks();
     }
