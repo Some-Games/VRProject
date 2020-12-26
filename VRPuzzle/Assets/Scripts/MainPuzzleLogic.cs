@@ -6,15 +6,17 @@ using UnityEngine;
 
 internal class PathfindingBlock
 {
-    internal Vector2Int BoardLocation;
+    private Vector2Int BoardLocation;
     internal Direction NextDirection;
-    internal PuzzleBlockType BlockType;
+    private PuzzleBlockType BlockType;
+    private bool PathfindingComplete;
 
     internal PathfindingBlock()
     {
         BoardLocation = new Vector2Int();
         NextDirection = Direction.Down;
         BlockType = PuzzleBlockType.Open;
+        PathfindingComplete = false;
     }
 
     internal PathfindingBlock(Vector2Int BoardLocation_ , Direction NextDirection_, PuzzleBlockType BlockType_ )
@@ -22,6 +24,7 @@ internal class PathfindingBlock
         BoardLocation = BoardLocation_;
         NextDirection = NextDirection_;
         BlockType = BlockType_;
+        PathfindingComplete = false;
     }
 
     internal PuzzleBlockType GetBlockType
@@ -29,6 +32,26 @@ internal class PathfindingBlock
         get
         {
             return BlockType;
+        }
+    }
+
+    internal Vector2Int GetBoardLocation
+    {
+        get
+        {
+            return BoardLocation;
+        }
+    }
+
+    internal bool PathfindingState
+    {
+        get
+        {
+            return PathfindingComplete;
+        }
+        set
+        {
+            PathfindingComplete = value;
         }
     }
 }
@@ -485,20 +508,33 @@ public class MainPuzzleLogic : MonoBehaviour
             if (shiftedBlocksDown) --x;
         }
 
+        StartCoroutine( DropAndLockBlocks_Thread());
+    }
+
+    bool PathfindingComplete = true;
+    IEnumerator DropAndLockBlocks_Thread()
+    {
         // TODO: Begin pathfinding
-        // StartCoroutine(BlocksPathfinding());
-        BlocksPathfinding();
+        StartCoroutine( BlocksPathfinding() );
+
+        while( !PathfindingComplete )
+        {
+            yield return new WaitForEndOfFrame();
+            print("Waiting...");
+        }
 
         // Spawn new block and continue
         SpawnNewBlock();
 
         PrintBoardToConsole();
+
+        yield return null;
     }
     #endregion
 
     List<int> yPositions;
     List<PathfindingBlock> SuccessfulPaths;
-    void BlocksPathfinding()
+    IEnumerator BlocksPathfinding()
     {
         // TODO: Remove print checks
         bool print_stage_1 = false;
@@ -686,6 +722,26 @@ public class MainPuzzleLogic : MonoBehaviour
 
             if (print_stage_3) print( "Starting Pathfinding Coroutines on " + PathfindingCoRoutines.Count + " paths" );
 
+            bool doneChecking = false;
+            int currNum = 0;
+
+            while( !doneChecking )
+            {
+                // Iterating upwards until all are checked. No need to re-check old positions
+                if (SuccessfulPaths[currNum].PathfindingState)
+                {
+                    currNum++;
+
+                    if (currNum >= SuccessfulPaths.Count) doneChecking = true;
+                }
+                else
+                {
+                    // yield return new WaitForEndOfFrame();
+                    yield return new WaitForSeconds(0.1f);
+                    print("Waiting...");
+                }
+            }
+
             print( "Paths Found: " + SuccessfulPaths.Count );
 
             // Start on left side, bottom of first column
@@ -703,20 +759,32 @@ public class MainPuzzleLogic : MonoBehaviour
         }
         #endregion
 
+        PathfindingComplete = true;
+
         print("---------------------");
-        print("END PATHFINDING");
+        print("END PATHFINDING INIT");
         print("---------------------");
 
-        // yield return null;
+        yield return null;
     }
 
     IEnumerator Thread_Pathfinding( PathfindingBlock thisBlock_ )
     {
         bool FoundEnd = false;
 
-        print( "Starting at " + thisBlock_.BoardLocation + " with type " + thisBlock_.BlockType );
-        if( thisBlock_.BlockType == PuzzleBlockType.Block_O)
+        print( "Starting at " + thisBlock_.GetBoardLocation + " with type " + thisBlock_.GetBlockType );
+        
+        // Fake temp scenario where only 'O' blocks are considered successful
+        if( thisBlock_.GetBlockType == PuzzleBlockType.Block_O)
             SuccessfulPaths.Add(thisBlock_);
+
+
+
+        float randNum = UnityEngine.Random.Range(0.1f, 1.0f);
+
+        yield return new WaitForSeconds(randNum);
+
+        thisBlock_.PathfindingState = true;
 
         /*
         List<PathfindingBlock> tempList = new List<PathfindingBlock>();
@@ -832,6 +900,8 @@ public class MainPuzzleLogic : MonoBehaviour
         }
         */
 
+        
+
         yield return FoundEnd;
     }
 
@@ -841,11 +911,11 @@ public class MainPuzzleLogic : MonoBehaviour
         bool isSafe = true;
 
         // If the previou
-        if (testList_[testList_.Count - 1].BoardLocation == nextPos_) isSafe = false;
+        if (testList_[testList_.Count - 1].GetBoardLocation == nextPos_) isSafe = false;
 
         if(testList_.Count >= 4)
             for(int i = 3; i < testList_.Count - 1; ++i)
-                if (testList_[i].BoardLocation == nextPos_) isSafe = false;
+                if (testList_[i].GetBoardLocation == nextPos_) isSafe = false;
 
         return isSafe;
     }
