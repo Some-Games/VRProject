@@ -848,6 +848,7 @@ public class MainPuzzleLogic : MonoBehaviour
 
             if(SuccessfulPaths.Count > 0)
             {
+                print("Did we somehow hit this?");
                 // Begins the process to apply a score (Pending a true line)
             }
             else
@@ -961,10 +962,6 @@ public class MainPuzzleLogic : MonoBehaviour
         _thisPath[_thisPath.Count - 1].PathfindingState = true;
         */
 
-        // Receives list, starts with 0 in list as initial reference.
-        PathfindingDirections nextDirections = Pathfinding_ReturnPossibleRoutes( _thisPath );
-        print("Directions: " + nextDirections.NumDirections);
-
         // START LOOP
         bool continueLooping = true;
         while(continueLooping)
@@ -972,17 +969,68 @@ public class MainPuzzleLogic : MonoBehaviour
             // If the requested block is in an acceptable column to score, mark it and kick out. Otherwise...
 
             // Determines what nearby blocks are considered valid moves.
+            PathfindingDirections nextDirections = Pathfinding_ReturnPossibleRoutes(_thisPath);
+            print("Directions: " + nextDirections.NumDirections);
 
-            // If there are no acceptable directions, state this path is complete (Do not delete)
+            if (nextDirections.NumDirections > 0)
+            {
+                Direction[] currDirs = new Direction[nextDirections.NumDirections];
+                int currPos = 0;
 
-            // For the 1st acceptable direction, add the new block to this list.
+                if (nextDirections.Left)
+                {
+                    currDirs[currPos] = Direction.Left;
+                    currPos++;
+                }
+                if (nextDirections.Down)
+                {
+                    currDirs[currPos] = Direction.Down;
+                    currPos++;
+                }
+                if (nextDirections.Up)
+                {
+                    currDirs[currPos] = Direction.Up;
+                    currPos++;
+                }
+                if (nextDirections.Right)
+                {
+                    currDirs[currPos] = Direction.Right;
+                    currPos++;
+                }
 
-            // For additional directions:
-                // Duplicate this path
-                // add the appropriate blocks to those paths
-                // add that new list to Master list
-                // Begin coroutines of that list
+                for (int i = 0; i < currDirs.Length; ++i)
+                {
+                    Vector2Int nextBlockPos = _thisPath[_thisPath.Count - 1].GetBoardLocation;
 
+                    if (currDirs[i] == Direction.Left) nextBlockPos.x--;
+                    else if (currDirs[i] == Direction.Down) nextBlockPos.y--;
+                    else if (currDirs[i] == Direction.Up) nextBlockPos.y++;
+                    else nextBlockPos.x++;
+
+                    // For the 1st acceptable direction, add the new block to this list.
+                    if ( i == 0)
+                        _thisPath.Add(new PathfindingBlock(nextBlockPos, _thisPath[0].NextDirection, _thisPath[0].GetBlockType));
+                    // For additional directions:
+                    else
+                    {
+                        // Duplicate this path
+                        List<PathfindingBlock> newTempList = _thisPath;
+
+                        // add the appropriate blocks to those paths
+                        newTempList.Add( new PathfindingBlock(nextBlockPos, _thisPath[0].NextDirection, _thisPath[0].GetBlockType) );
+
+                        // add that new list to Master list
+                        // Begin coroutines of that list
+                        BeginPathfindingCoroutine( newTempList, newTempList[0].NextDirection );
+                    }
+                }
+            }
+            else
+            {
+                // If there are no acceptable directions, state this path is complete (Do not delete)   
+                _thisPath[_thisPath.Count - 1].PathfindingState = true;
+                continueLooping = false;
+            }
         }
         // END LOOP
 
@@ -1177,6 +1225,8 @@ public class MainPuzzleLogic : MonoBehaviour
             if (thisPos.x == BoardEdge_Horiz_Left || thisPos.x == BoardEdge_Horiz_Right)
             {
                 // Add final block to list
+                print("COMPLETE");
+                return null;
 
                 // Add list to Successful Paths
 
