@@ -206,7 +206,7 @@ public class MainPuzzleLogic : MonoBehaviour
     {
         xPosCenter_LeftSide = ((BoardWidth + 2) / 2) - 1; // +2 for sidebar, /2 for middle, -1 for center adjust (Works even/odd board width)
         BoardEdge_Horiz_Left = 1;
-        BoardEdge_Horiz_Right = BoardWidth + 1;
+        BoardEdge_Horiz_Right = BoardWidth;
 
         Init_PuzzleBlockArray();
 
@@ -256,6 +256,8 @@ public class MainPuzzleLogic : MonoBehaviour
             TEST_Board_2();
         if (Input.GetKeyDown(KeyCode.Keypad3))
             TEST_Board_3();
+        if (Input.GetKeyDown(KeyCode.Keypad4))
+            TEST_Board_4();
     }
 
     void Init_PuzzleBlockArray()
@@ -615,15 +617,15 @@ public class MainPuzzleLogic : MonoBehaviour
         StartCoroutine( DropAndLockBlocks_Thread());
     }
 
-    bool PathfindingComplete = true;
+    bool AnyPathfindingContinuing = false;
     IEnumerator DropAndLockBlocks_Thread()
     {
-        PathfindingComplete = false;
+        AnyPathfindingContinuing = true;
 
         // TODO: Begin pathfinding
         StartCoroutine( BlocksPathfinding() );
 
-        while ( !PathfindingComplete )
+        while ( AnyPathfindingContinuing )
         {
             yield return new WaitForSeconds(1f);
             // yield return new WaitForEndOfFrame();
@@ -662,8 +664,6 @@ public class MainPuzzleLogic : MonoBehaviour
         bool BlockTypeFound_X = false;
         bool BlockTypeFound_O = false;
 
-
-
         if (print_stage_1) print("X: " + (xPosCenter_LeftSide) + ", " + (xPosCenter_LeftSide + 1));
 
         // CONFIRM: Block X/O exists in (X, Y) & (X + 1, Y)
@@ -688,6 +688,13 @@ public class MainPuzzleLogic : MonoBehaviour
                 // We already know enough that further pathfinding is needed
                 continuePathfinding = true;
             }
+        }
+
+        // If we haven't found a match of either type, break out
+        if (!(BlockTypeFound_X || BlockTypeFound_O))
+        {
+            AnyPathfindingContinuing = false;
+            print("STEPPING OUT");
         }
 
         string yPos = "";
@@ -771,6 +778,8 @@ public class MainPuzzleLogic : MonoBehaviour
 
                             x_ = BoardWidth;
 
+                            AnyPathfindingContinuing = false;
+
                             continue;
                         }
                         // If we've found one, turn off checks that are necessary
@@ -816,22 +825,29 @@ public class MainPuzzleLogic : MonoBehaviour
                 newList.Add(new PathfindingBlock(tempV2Int_Left, Direction.Left, tempBlock));
                 BeginPathfindingCoroutine(newList, Direction.Left);
 
-                /*
                 newList = new List<PathfindingBlock>();
                 newList.Add(new PathfindingBlock(tempV2Int_Right, Direction.Right, tempBlock));
                 BeginPathfindingCoroutine(newList, Direction.Right);
-                */
             }
 
             if (print_stage_3) print("Starting Pathfinding Coroutines on " + (BlockList_Master_LeftSection.Count + BlockList_Master_RightSection.Count) + " paths");
 
             bool doneChecking = false;
             int currNum = 0;
+            bool shouldSkipRightQuadrant = false;
 
             while (!doneChecking)
             {
-                if( BlockList_Master_LeftSection.Count > 0 ) print( "[LEFT] Current Lists: " + BlockList_Master_LeftSection.Count );
-                if( BlockList_Master_RightSection.Count > 0 ) print("[RIGHT] Current Lists: " + BlockList_Master_RightSection.Count );
+                if (BlockList_Master_LeftSection.Count == 0)
+                {
+                    SuccessfulPaths = null;
+                    AnyPathfindingContinuing = false;
+                    shouldSkipRightQuadrant = true;
+                    break;
+                }
+
+                print("[LEFT] BlockList Count: " + BlockList_Master_LeftSection.Count);
+                if ( BlockList_Master_LeftSection.Count > 0 ) print( "[LEFT] Current Lists: " + BlockList_Master_LeftSection.Count );
 
                 // Iterating upwards until all are checked. No need to re-check old positions
                 if ( BlockList_Master_LeftSection[ currNum ][ BlockList_Master_LeftSection[ currNum ].Count - 1 ].PathfindingState )
@@ -843,7 +859,43 @@ public class MainPuzzleLogic : MonoBehaviour
                     {
                         doneChecking = true;
 
-                        PathfindingComplete = true;
+                        AnyPathfindingContinuing = false;
+                    }
+                }
+                else
+                {
+                    // TODO 
+                    print("Waiting... " + currNum);
+                    yield return new WaitForEndOfFrame();
+                }
+            }
+
+            // Also set for Right side
+            doneChecking = false;
+            currNum = 0;
+            while (!doneChecking)
+            {
+                if(BlockList_Master_RightSection.Count == 0 || shouldSkipRightQuadrant )
+                {
+                    SuccessfulPaths = null;
+                    AnyPathfindingContinuing = false;
+                    break;
+                }
+
+                print("[RIGHT] BlockList Count: " + BlockList_Master_RightSection.Count);
+                if (BlockList_Master_RightSection.Count > 0) print("[RIGHT] Current Lists: " + BlockList_Master_RightSection.Count);
+
+                // Iterating upwards until all are checked. No need to re-check old positions
+                if (BlockList_Master_RightSection[currNum][BlockList_Master_RightSection[currNum].Count - 1].PathfindingState)
+                {
+                    print("Current Thread Wait: " + currNum);
+                    currNum++;
+
+                    if (currNum >= BlockList_Master_RightSection.Count)
+                    {
+                        doneChecking = true;
+
+                        AnyPathfindingContinuing = false;
                     }
                 }
                 else
@@ -855,14 +907,12 @@ public class MainPuzzleLogic : MonoBehaviour
             }
 
             // Determine if there's at least one potential path list
-            if( SuccessfulPaths.Count > 0 )
+            if (SuccessfulPaths.Count > 0)
             {
                 print("Did we somehow hit this?");
                 // Begins the process to apply a score (Pending a true line)
             }
-
-            // TODO: Also set for Right side
-
+            else AnyPathfindingContinuing = false;
 
             // List<IEnumerator> PathfindingCoRoutines_Left = new List<IEnumerator>();
             // List<IEnumerator> PathfindingCoRoutines_Right = new List<IEnumerator>();
@@ -943,7 +993,7 @@ public class MainPuzzleLogic : MonoBehaviour
     void BeginPathfindingCoroutine( List<PathfindingBlock> _thisPath, Direction _quadrant )
     {
         // TODO: Remove for Right half
-        if ( _quadrant != Direction.Left ) return;
+        // if ( _quadrant != Direction.Left ) return;
 
         // Add List<PathfindingBlock> to BlockList_Master
         if ( _quadrant == Direction.Left )
@@ -968,7 +1018,7 @@ public class MainPuzzleLogic : MonoBehaviour
 
         // START LOOP
         bool continueLooping = true;
-        while(continueLooping)
+        while( continueLooping )
         {
             // If the requested block is in an acceptable column to score, mark it and kick out. Otherwise...
             if( _thisPath[ _thisPath.Count - 1 ].GetBoardLocation.x == BoardEdge_Horiz_Left || _thisPath[ _thisPath.Count - 1 ].GetBoardLocation.x == BoardEdge_Horiz_Right )
@@ -1469,6 +1519,22 @@ public class MainPuzzleLogic : MonoBehaviour
                     SetBlockAtBoardPosition(x, y, PuzzleBlockType.Block_X);
             }
         }
+
+        PrintBoardToConsole();
+
+        DropAndLockBlocks();
+    }
+
+    void TEST_Board_4()
+    {
+        ClearBoard();
+
+        for (int i = 1; i < BoardWidth + 1; ++i)
+        {
+            SetBlockAtBoardPosition(i, 0, PuzzleBlockType.Block_O);
+        }
+
+        SetBlockAtBoardPosition(BoardEdge_Horiz_Right, 0, PuzzleBlockType.Open);
 
         PrintBoardToConsole();
 
